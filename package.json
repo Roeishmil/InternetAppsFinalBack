@@ -1,0 +1,43 @@
+{
+  "name": "internetfinalback",
+  "version": "1.0.0",
+  "description": "backend",
+  "homepage": "https://github.com/Roeishmil/InternetAppsFinalBack#readme",
+  "bugs": {
+    "url": "https://github.com/Roeishmil/InternetAppsFinalBack/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roeishmil/InternetAppsFinalBack.git"
+  },
+  "license": "ISC",
+  "author": "RoeiEldar",
+  "type": "module",
+  "main": "app.ts",
+  "scripts": {
+    "start": "npx tsx src/app.ts",
+    "test": ""
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.18.0",
+    "express": "^4.21.2",
+    "jest": "^29.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.1.9",
+    "supertest": "^7.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7"
+  }
+}
