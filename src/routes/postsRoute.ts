@@ -123,7 +123,7 @@ router.get("/:id", postsController.getById.bind(postsController));
  *         description: Server error
  */
 
-router.post("/",authMiddleware, postsController.create.bind(postsController));
+router.post("/", postsController.create.bind(postsController));
 
 
 /**

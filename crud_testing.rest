@@ -54,7 +54,7 @@ Content-Type: application/json
 
 {
     "title": "Hello",
-    "sender": "Jason",
+    "owner": "Jason",
     "content": "Blabla"
 }
 
