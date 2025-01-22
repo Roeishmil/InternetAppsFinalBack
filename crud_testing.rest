@@ -1,0 +1,68 @@
+
+#####################################AI API###########################
+
+
+
+#####################################Authentication API###############################
+
+### Register a user
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "username": "Jason",
+  "email":"jason@tomtom.com",
+  "password": "RoeiIsLove"
+}
+
+### Login a user
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "username": "Jason",
+  "password": "RoeiIsLove"
+}
+
+
+### Logout a user
+POST http://localhost:3000/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ikphc29uIiwicmFuZG9tIjoiMC4wMDUyMDQ3Nzg5NDY2MjIzMDE2IiwiaWF0IjoxNzM1Mzk1NDg1LCJleHAiOjE3MzYwMDAyODV9.DjVqW2HDvxBqg6FscZPa-JjREkDSyii2rlY9623DyKU"
+}
+
+#####################################POST API###############################
+
+###Get all the posts
+GET http://localhost:3000/posts
+
+###
+
+###Get all the posts relating to an sender
+GET http://localhost:3000/posts?sender=Jason
+
+###Get specific post by its ID
+
+GET http://localhost:3000/posts/674acd01c4f0dfb4e8ddddd9
+
+###Create a post
+
+POST http://localhost:3000/posts
+Content-Type: application/json
+
+{
+    "title": "Hello",
+    "sender": "Jason",
+    "content": "Blabla"
+}
+
+###Update a post based on its ID
+
+PUT http://localhost:3000/posts/674acd01c4f0dfb4e8ddddd9
+Content-Type: application/json
+
+{
+    "content": "Blabla was adjusted!"
+}
