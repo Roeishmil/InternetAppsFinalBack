@@ -16,7 +16,8 @@
   "main": "app.ts",
   "scripts": {
     "start": "npx tsx src/app.ts",
-    "test": ""
+    "test": "",
+    "testPost": "jest --detectOpenHandles --forceExit posts.test.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -35,7 +36,8 @@
     "swagger-ui-express": "^5.0.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

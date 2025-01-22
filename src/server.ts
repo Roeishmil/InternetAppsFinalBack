@@ -12,6 +12,7 @@ import fileRoute from "./routes/fileRoute";
 import swaggerJsDoc from "swagger-jsdoc";
 import swaggerUI from "swagger-ui-express";
 import askGPT from './openai';
+import cors from "cors";
 
 
 const app: Express = express();
@@ -19,6 +20,9 @@ const app: Express = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(cors({
+  origin: 'http://localhost:5173', // Your React app's URL
+}));
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
