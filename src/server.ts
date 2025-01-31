@@ -7,15 +7,22 @@ import usersRoute from "./routes/usersRoute";
 import postsRoute from "./routes/postsRoute";
 import commentsRoute from "./routes/commentsRoute";
 import authRoutes from "./routes/authRoute";
-//import fileRoute from "./routes/file_route";
+import likesRoutes from "./routes/likedObjectRoute";
+import fileRoute from "./routes/fileRoute";
 import swaggerJsDoc from "swagger-jsdoc";
 import swaggerUI from "swagger-ui-express";
+import askGPT from './openai';
+import cors from "cors";
+
 
 const app: Express = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(cors({
+  origin: 'http://localhost:5173', // Your React app's URL
+}));
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -27,11 +34,12 @@ app.use((req, res, next) => {
 app.use("/posts", postsRoute);
 app.use("/comments", commentsRoute);
 app.use("/auth", authRoutes);
-// app.use("/file", fileRoute);
- app.use("/users", usersRoute);
+app.use("/storage", fileRoute);
+app.use("/users", usersRoute);
+app.use("/likes", likesRoutes);
+app.use("/api/askGPT", askGPT);
 
-
-app.use("/public", express.static("public"));
+app.use("/storage", express.static("storage"));
 app.use(express.static("front"));
 
 
