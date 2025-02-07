@@ -4,7 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
 
-const router = express.Router();
+const fileRouter = express.Router();
 
 // Add a custom interface to extend Request
 interface CustomRequest extends Request {
@@ -23,12 +23,12 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const storage = multer.diskStorage({
     destination: async function (req: CustomRequest, file: Express.Multer.File, cb) {
         try {
-            const userId = ( req.query.userId || req.body.userId ) as string;
-            if (!userId) {
-                return cb(new Error("userId is required"), "");
+            const imgId = ( req.query.imgId || req.body.imgId ) as string;
+            if (!imgId) {
+                return cb(new Error("imgId is required"), "");
             }
 
-            const userDir = path.join("storage", userId);
+            const userDir = path.join("storage", imgId);
             
             // Create user directory if it doesn't exist
             await fs.mkdir(userDir, { recursive: true });
@@ -62,11 +62,11 @@ const upload = multer({
  *     tags: [Files]
  *     parameters:
  *       - in: query
- *         name: userId
+ *         name: imgId
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
+ *         description: Img ID
  *     requestBody:
  *       required: true
  *       content:
@@ -83,7 +83,7 @@ const upload = multer({
  *       200:
  *         description: File uploaded successfully
  */
-router.post('/', async (req: Request, res: Response) => {
+fileRouter.post('/', async (req: Request, res: Response) => {
     try {
         upload.single('file')(req, res, async (err) => {
             if (err instanceof multer.MulterError) {
@@ -124,13 +124,13 @@ router.post('/', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /storage/{userId}/{filename}:
+ * /storage/{imgId}/{filename}:
  *   get:
  *     summary: Download a file
  *     tags: [Files]
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: imgId
  *         required: true
  *         schema:
  *           type: string
@@ -145,11 +145,11 @@ router.post('/', async (req: Request, res: Response) => {
  *       404:
  *         description: File not found
  */
-router.get('/:userId/:filename', async (req: Request, res: Response) => {
+fileRouter.get('/:imgId/:filename', async (req: Request, res: Response) => {
     try {
         const filePath = path.join(
             "storage", 
-            req.params.userId, 
+            req.params.imgId, 
             req.params.filename
         );
 
@@ -174,13 +174,13 @@ router.get('/:userId/:filename', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /storage/{userId}:
+ * /storage/{imgId}:
  *   get:
- *     summary: List all files for a user
+ *     summary: List all files by id
  *     tags: [Files]
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: imgId
  *         required: true
  *         schema:
  *           type: string
@@ -188,9 +188,9 @@ router.get('/:userId/:filename', async (req: Request, res: Response) => {
  *       200:
  *         description: List of files
  */
-router.get('/:userId', async (req: Request, res: Response) => {
+fileRouter.get('/:imgId', async (req: Request, res: Response) => {
     try {
-        const userDir = path.join("storage", req.params.userId);
+        const userDir = path.join("storage", req.params.imgId);
 
         // Create directory if it doesn't exist
         await fs.mkdir(userDir, { recursive: true });
@@ -208,7 +208,7 @@ router.get('/:userId', async (req: Request, res: Response) => {
                     size: stats.size,
                     created: stats.birthtime,
                     modified: stats.mtime,
-                    url: `/storage/${req.params.userId}/${filename}`
+                    url: `/storage/${req.params.imgId}/${filename}`
                 };
             })
         );
@@ -222,4 +222,4 @@ router.get('/:userId', async (req: Request, res: Response) => {
     }
 });
 
-export default router;
+export default fileRouter;

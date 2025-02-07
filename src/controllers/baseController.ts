@@ -38,6 +38,7 @@ class BaseController<T> {
     };
 
     async create(req: Request, res: Response) {
+        console.log('Reached base creation', req.body);
         const body = req.body;
         try {
             const item = await this.model.create(body);

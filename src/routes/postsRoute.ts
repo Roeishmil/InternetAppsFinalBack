@@ -2,7 +2,10 @@ import express from "express";
 const router = express.Router();
 import postsController from"../controllers/postsController";
 import { authMiddleware } from "../controllers/authController";
+import fileRouter from "../routes/fileRoute"; // Import the existing upload middleware
+import multer from 'multer';
 
+const upload = multer(); // For parsing multipart/form-data
 
 /**
  * @swagger
@@ -82,14 +85,15 @@ router.get("/", postsController.getAll.bind(postsController));
  *         description: Server error
  */
 
+
 router.get("/:id", postsController.getById.bind(postsController));
 
 /**
  * @swagger
  * /posts:
  *   post:
- *     summary: Create a new post
- *     description: Create a new post
+ *     summary: Create a new post with an optional image
+ *     description: Create a new post, allowing users to attach an image directly
  *     tags:
  *       - Posts
  *     security:
@@ -97,7 +101,7 @@ router.get("/:id", postsController.getById.bind(postsController));
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -107,9 +111,17 @@ router.get("/:id", postsController.getById.bind(postsController));
  *               content:
  *                 type: string
  *                 description: The content of the post
+ *               owner:
+ *                 type: string
+ *                 description: The owner of the post
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional image file to be uploaded
  *             required:
  *               - title
  *               - content
+ *               - owner
  *     responses:
  *       201:
  *         description: Post created successfully
@@ -122,8 +134,7 @@ router.get("/:id", postsController.getById.bind(postsController));
  *       500:
  *         description: Server error
  */
-
-router.post("/", postsController.create.bind(postsController));
+router.post("/", upload.single('file'),postsController.create.bind(postsController));
 
 
 /**
@@ -153,6 +164,8 @@ router.post("/", postsController.create.bind(postsController));
  */
 
 router.delete("/:id", authMiddleware, postsController.deleteItem.bind(postsController));
+
+router.delete("/",postsController.deleteAllItems.bind(postsController));
 
 router.put("/:id", authMiddleware, postsController.updateItem.bind(postsController));
 
