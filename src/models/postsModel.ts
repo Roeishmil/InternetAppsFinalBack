@@ -4,6 +4,7 @@ export interface Ipost{
   title: string;
   content: string;
   owner: string;
+  imgUrl: string;
 }
 
 const postSchema = new mongoose.Schema<Ipost>({
@@ -16,6 +17,10 @@ const postSchema = new mongoose.Schema<Ipost>({
     type: String,
     required: true,
   },
+  imgUrl: {
+    type : String,
+    requierd: false,
+  }
 });
 
 const postModel = mongoose.model<Ipost>("Posts", postSchema);

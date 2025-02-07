@@ -10,8 +10,8 @@ POST http://localhost:3000/auth/register
 Content-Type: application/json
 
 {
-  "username": "Jason",
-  "email":"jason@tomtom.com",
+  "username": "Jason1",
+  "email":"jason@tomtom1.com",
   "password": "RoeiIsLove"
 }
 
@@ -66,3 +66,6 @@ Content-Type: application/json
 {
     "content": "Blabla was adjusted!"
 }
+
+###Delete all posts
+DELETE http://localhost:3000/posts

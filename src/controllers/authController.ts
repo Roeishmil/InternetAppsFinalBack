@@ -34,6 +34,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
 const register = async (req: Request, res: Response) => {
   try {
+    console.log('Reached registration', req.body);
     const password = req.body.password;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -44,7 +45,15 @@ const register = async (req: Request, res: Response) => {
     });
     res.status(200).send(user);
   } catch (error) {
-    res.status(400).send(error);
+    if(error.code === 11000){
+      const duplicateField = Object.keys(error.keyPattern)[0]; // Find which field is duplicated
+      return res.status(400).json({ 
+          message: `Duplicate ${duplicateField} error: This ${duplicateField} is already taken.` 
+      });
+    }
+    else{
+      res.status(400).send(error);
+    }
   }
 };
 

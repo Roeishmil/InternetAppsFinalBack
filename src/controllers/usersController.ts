@@ -32,6 +32,7 @@ const getUserByUsername = async (req:any, res:any) => {
 
 const createAUser = async (req:any, res:any) => {
   const userBody = req.body;
+  console.log('User creation reached',req.body)
   try {
     const user = await usersModel.create(userBody);
     res.status(201).send(user);

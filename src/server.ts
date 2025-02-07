@@ -21,7 +21,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(cors({
-  origin: 'http://localhost:5173', // Your React app's URL
+  origin: 'http://localhost:5173', // Our React app's URL
 }));
 
 app.use((req, res, next) => {
