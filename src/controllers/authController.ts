@@ -118,7 +118,9 @@ const login = async (req: Request, res: Response) => {
       {
         accessToken: token.accessToken,
         refreshToken: token.refreshToken,
-        id: user._id
+        id: user._id,
+        username: user.username,
+        password: req.body.password
       });
   } catch (error) {
     res.status(400).send(error);
