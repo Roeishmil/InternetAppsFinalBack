@@ -163,10 +163,10 @@ router.post("/", upload.single('file'),postsController.create.bind(postsControll
  *         description: Server error
  */
 
-router.delete("/:id", authMiddleware, postsController.deleteItem.bind(postsController));
+router.delete("/:id", postsController.deleteItem.bind(postsController));
 
 router.delete("/",postsController.deleteAllItems.bind(postsController));
 
-router.put("/:id", authMiddleware, postsController.updateItem.bind(postsController));
+router.put("/:id",upload.single('file'), postsController.updateItem.bind(postsController));
 
 export default router;

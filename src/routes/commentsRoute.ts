@@ -84,8 +84,10 @@ router.get("/", commentsController.getAll.bind(commentsController));
  *         description: Server error.
  */
 
-router.get("/:id", commentsController.getById.bind(commentsController));
+//router.get("/:id", commentsController.getById.bind(commentsController));
 
+
+router.get("/:id",commentsController.getAllByPostId.bind(commentsController));
 
 /**
  * @swagger
@@ -131,7 +133,7 @@ router.get("/:id", commentsController.getById.bind(commentsController));
  *         description: Server error.
  */
 
-router.post("/", authMiddleware ,commentsController.create.bind(commentsController));
+router.post("/" ,commentsController.create.bind(commentsController));
 
 
 

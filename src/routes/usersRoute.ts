@@ -1,6 +1,9 @@
 import express from "express";
 const router = express.Router();
 import usersController from"../controllers/usersController";
+import multer from 'multer';
+
+const upload = multer(); // For parsing multipart/form-data
 
 /**
 * @swagger
@@ -199,5 +202,9 @@ router.put("/:username", usersController.updateUserEmailByUsername);
  */
 
 router.delete("/:username", usersController.deleteUserByUsername);
+
+
+router.post("/:username", upload.single('file'),usersController.updateUserImageByUsername);
+
 
 export default router;

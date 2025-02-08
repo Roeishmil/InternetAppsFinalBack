@@ -70,41 +70,6 @@ class PostsController extends BaseController<Ipost> {
             });
         }
     }
-    // async create(req: FileRequest, res: Response) {
-    //     try {
-    //         console.log("Request create post",req.body);
-    //         const userId = req.body.owner;
-            
-    //         // Create the post first to get its ID
-    //         const postData = {
-    //             ...req.body,
-    //             owner: userId
-    //         };
-            
-    //         const post = new postModel(postData);
-    //         const savedPost = await post.save();
-
-    //         // If there's a file, update the post with the file URL
-    //         if (req.file) {
-    //             console.log('reached file creation');
-    //             // The file has already been saved by fileRoute middleware
-    //             // Construct the URL using the saved file information
-    //             const fileUrl = `/storage/${savedPost._id}/${req.file.filename}`;
-                
-    //             fileRouter.post(fileUrl);
-    //         }
-
-    //         // Return the complete updated post
-    //         const updatedPost = await postModel.findById(savedPost._id);
-    //         res.status(201).json(updatedPost);
-    //     } catch (error) {
-    //         console.error('Error creating post:', error);
-    //         res.status(500).json({ 
-    //             error: "Error creating post", 
-    //             details: error.message 
-    //         });
-    //     }
-    // }
 
     
     async getAll(req: Request, res: Response) {
@@ -124,7 +89,31 @@ class PostsController extends BaseController<Ipost> {
         super.deleteItem(req, res);
         };
 
-    async updateItem(req: Request, res: Response) {
+    async updateItem(req: FileRequest, res: Response) {
+        if (req.file){
+            console.log('postbody',req.body);
+            const port = process.env.PORT;
+            const postId = req.body.id;
+            const imgUrl = req.body.imgUrl;            
+            const formData = new FormData();
+            const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+            formData.append('file', fileBlob, req.file.originalname);
+
+            // Make request to your file upload endpoint
+            const response = await fetch(`http://localhost:${port}/storage?imgId=${postId}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload file');
+            }
+
+            const fileData = await response.json();            
+
+            const finalUrl = `http://localhost:${port}/storage/${postId}`+'/'+fileData.url.split('/').pop();
+            req.body.imgUrl = finalUrl;
+        }
         super.updateItem(req, res);
     };
     async deleteAllItems(req:Request, res:Response){

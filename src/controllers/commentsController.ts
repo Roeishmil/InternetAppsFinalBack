@@ -8,6 +8,7 @@ class CommentsController extends BaseController<IComments> {
     }
 
     async create(req: Request, res: Response) {
+        console.log("Comment post id",req.body);
         const userId = req.body.owner;
         const comment = {
             ...req.body,
@@ -21,6 +22,21 @@ class CommentsController extends BaseController<IComments> {
         try {
             const comments = await commentsModel.find();
             res.status(200).json(comments);
+        } catch (error) {
+            res.status(500).json({ message: 'Server Error' });
+        }
+    };
+
+    async getAllByPostId(req: Request, res: Response) {
+        try {
+            console.log("reached comment post id",req.params);            
+            const filter = req.params.id;
+            if(filter){
+                console.log("postid",filter);
+                const comments = await commentsModel.find({postId : filter});
+                res.status(200).json(comments);
+
+            }
         } catch (error) {
             res.status(500).json({ message: 'Server Error' });
         }
