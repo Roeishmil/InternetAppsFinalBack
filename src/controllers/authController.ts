@@ -4,221 +4,248 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
 
-
 type Payload = {
   _id: string;
+  random: string;
 };
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authorization = req.header('authorization');
-  const token = authorization && authorization.split(' ')[1];
+  const authorization = req.header('Authorization');
+  if (!authorization) {
+    return res.status(401).send('Access Denied: No token provided');
+  }
 
+  const token = authorization.split(' ')[1]; // Get token from "Bearer <token>"
+  
   if (!token) {
-      res.status(401).send('Access Denied');
-      return;
+    return res.status(401).send('Access Denied: Invalid token format');
   }
+
   if (!process.env.TOKEN_SECRET) {
-      res.status(500).send('Server Error');
-      return;
+    return res.status(500).send('Server Error: Token secret not configured');
   }
 
-  jwt.verify(token, process.env.TOKEN_SECRET, (err, payload) => {
-      if (err) {
-          res.status(401).send('Access Denied');
-          return;
-      }
-      req.params.userId = (payload as Payload)._id;
-      next();
-  });
-};
-
-const register = async (req: Request, res: Response) => {
   try {
-    console.log('Reached registration', req.body);
-    const password = req.body.password;
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const user = await userModel.create({
-      username: req.body.username,
-      email: req.body.email,
-      password: hashedPassword,
-    });
-    res.status(200).send(user);
-  } catch (error) {
-    if(error.code === 11000){
-      const duplicateField = Object.keys(error.keyPattern)[0]; // Find which field is duplicated
-      return res.status(400).json({ 
-          message: `Duplicate ${duplicateField} error: This ${duplicateField} is already taken.` 
-      });
-    }
-    else{
-      res.status(400).send(error);
-    }
+    const verified = jwt.verify(token, process.env.TOKEN_SECRET) as Payload;
+    req.user = { userId: verified._id }; // Store user ID in request object
+    console.log('auth successfull');
+    next();    
+  } catch (err) {
+    res.status(401).send('Access Denied: Invalid token');
   }
 };
 
-type tTokens ={
-    accessToken: string,
-    refreshToken: string
-}
+type tTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
 
 const generateToken = (userId: string): tTokens | null => {
   if (!process.env.TOKEN_SECRET) {
     return null;
   }
-  // generate token
-  const random = Math.random().toString();
-  const accessToken = jwt.sign({
-    _id: userId,
-    random: random
-  },
-    process.env.TOKEN_SECRET,
-    { expiresIn: process.env.TOKEN_EXPIRES });
 
-  const refreshToken = jwt.sign({
-    _id: userId,
-    random: random
-  },
+  const random = Math.random().toString();
+  const accessToken = jwt.sign(
+    {
+      _id: userId,
+      random: random
+    },
     process.env.TOKEN_SECRET,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES });
+    { expiresIn: process.env.TOKEN_EXPIRES || '15m' }
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      _id: userId,
+      random: random
+    },
+    process.env.TOKEN_SECRET,
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES || '7d' }
+  );
+
   return {
-    accessToken: accessToken,
-    refreshToken: refreshToken
+    accessToken,
+    refreshToken
   };
+};
+
+const register = async (req: Request, res: Response) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Input validation
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user
+    const user = await userModel.create({
+      username,
+      email,
+      password: hashedPassword,
+      refreshToken: [] // Initialize empty refresh token array
+    });
+
+    // Generate tokens
+    const tokens = generateToken(user._id);
+    if (!tokens) {
+      return res.status(500).json({ message: 'Error generating tokens' });
+    }
+
+    // Store refresh token
+    user.refreshToken = [tokens.refreshToken];
+    await user.save();
+
+    // Send response
+    res.status(200).json({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      id: user._id,
+      username: user.username
+    });
+
+  } catch (error) {
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: `Duplicate ${duplicateField} error: This ${duplicateField} is already taken.`
+      });
+    }
+    res.status(500).json({ message: 'Server error during registration' });
+  }
 };
 
 const login = async (req: Request, res: Response) => {
   try {
-    const user = await userModel.findOne({ email: req.body.email });
-    if(!user){
-      res.status(400).send('Invalid username or password'); 
-      return;
+    const { email, password } = req.body;
+
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
     }
-    const validPassword = await bcrypt.compare(req.body.password, user.password);
+
+    // Find user
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      res.status(400).send('Invalid username or password');
-      return;
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
-    if(!process.env.TOKEN_SECRET){
-      res.status(500).send('Server Error - key')
-      return;
+
+    // Generate tokens
+    const tokens = generateToken(user._id);
+    if (!tokens) {
+      return res.status(500).json({ message: 'Error generating tokens' });
     }
-    // Generate JWT
-    const token = generateToken(user.username);
-    if (!token) {
-      res.status(500).send('Server Error - token')
-      return;
-    }
+
+    // Update refresh tokens
     if (!user.refreshToken) {
       user.refreshToken = [];
     }
-    user.refreshToken.push(token.refreshToken);
+    user.refreshToken.push(tokens.refreshToken);
     await user.save();
-    res.status(200).send(
-      {
-        accessToken: token.accessToken,
-        refreshToken: token.refreshToken,
-        id: user._id,
-        username: user.username,
-        password: req.body.password
-      });
+
+    // Send response
+    res.status(200).json({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      id: user._id,
+      username: user.username
+    });
+
   } catch (error) {
-    res.status(400).send(error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 };
 
-type tUser = Document<unknown, {}, IUser> & IUser & Required<{
-  _id: string;
-}> & {
-  __v: number;
-}
+const verifyRefreshToken = async (refreshToken: string): Promise<any> => {
+  if (!process.env.TOKEN_SECRET) {
+    throw new Error('Server Error: Token secret not configured');
+  }
 
-const verifyRefreshToken = async (refreshToken: string | undefined): Promise<any> => {
   return new Promise((resolve, reject) => {
-      //get refresh token from body
-      if (!refreshToken) {
-          reject("access denied");
-          return;
+    jwt.verify(refreshToken, process.env.TOKEN_SECRET!, async (err: any, payload: any) => {
+      if (err) {
+        return reject('Invalid refresh token');
       }
-      //verify token
-      if (!process.env.TOKEN_SECRET) {
-          reject("access denied");
-          return;
+
+      try {
+        const user = await userModel.findById(payload._id);
+        if (!user || !user.refreshToken?.includes(refreshToken)) {
+          return reject('Invalid refresh token');
+        }
+        resolve(user);
+      } catch (err) {
+        reject('Server error during token verification');
       }
-      jwt.verify(refreshToken, process.env.TOKEN_SECRET, async (err: any, payload: any) => {
-          if (err) {
-              reject("access denied");
-              return
-          }
-          //get the user id from token
-          
-          const userId = payload._id;
-          try {
-              //get the user form the db
-              const user = await userModel.findOne({username:userId});
-              if (!user) {
-                  reject("access denied");
-                  return;
-              }
-              if (!user.refreshToken || !user.refreshToken.includes(refreshToken)) {
-                  user.refreshToken = [];
-                  await user.save();
-                  reject("access denied");
-                  return;
-              }
-              //remove the current token from the user's refreshToken list
-              const tokens = user.refreshToken!.filter((token) => token !== refreshToken);
-              user.refreshToken = tokens;
-              resolve(user);
-          } catch (err) {
-              reject("fail");
-              return;
-          }
-      });
+    });
   });
-}
+};
+
+const refresh = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token required' });
+    }
+
+    const user = await verifyRefreshToken(refreshToken);
+    
+    // Generate new tokens
+    const tokens = generateToken(user._id);
+    if (!tokens) {
+      return res.status(500).json({ message: 'Error generating tokens' });
+    }
+
+    // Update refresh tokens
+    user.refreshToken = user.refreshToken.filter(token => token !== refreshToken);
+    user.refreshToken.push(tokens.refreshToken);
+    await user.save();
+
+    res.status(200).json({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      id: user._id
+    });
+
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
+};
 
 const logout = async (req: Request, res: Response) => {
   try {
-      const user = await verifyRefreshToken(req.body.refreshToken);
-      await user.save();
-      res.status(200).send("success");
-  } catch (err) {
-      res.status(400).send("fail");
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token required' });
+    }
+
+    const user = await verifyRefreshToken(refreshToken);
+    
+    // Remove the refresh token
+    user.refreshToken = user.refreshToken.filter(token => token !== refreshToken);
+    await user.save();
+
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid refresh token' });
   }
 };
 
-  const refresh= async (req: Request, res: Response) => {
-    try{
-      const user = await verifyRefreshToken(req.body.refreshToken);
-      if(!user){
-        res.status(400).send("access denied");
-        return;
-      }
-      const token = generateToken(user._id);
-
-      if(!token){
-        res.status(500).send("server error");
-        return;
-      }
-      if(!user.refreshToken){
-        user.refreshToken = [];
-      }
-      user.refreshToken.push(token.refreshToken);
-      await user.save();
-      res.status(200).send({
-        accessToken: token.accessToken,
-        refreshToken: token.refreshToken,
-        id: user._id
-      });
-    } catch(err){
-      res.status(400).send("access denied");
-    }
-  };
-
-  export default {
-    register,
-    login,
-    logout,
-    refresh
-  };
+export default {
+  register,
+  login,
+  logout,
+  refresh,
+  authMiddleware,
+  generateToken
+};

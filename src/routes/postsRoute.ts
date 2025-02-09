@@ -3,6 +3,7 @@ const router = express.Router();
 import postsController from"../controllers/postsController";
 import { authMiddleware } from "../controllers/authController";
 import fileRouter from "../routes/fileRoute"; // Import the existing upload middleware
+
 import multer from 'multer';
 
 const upload = multer(); // For parsing multipart/form-data
@@ -134,7 +135,9 @@ router.get("/:id", postsController.getById.bind(postsController));
  *       500:
  *         description: Server error
  */
-router.post("/", upload.single('file'),postsController.create.bind(postsController));
+router.post("/", upload.single('file'), authMiddleware, postsController.create.bind(postsController));
+
+//router.post("/", upload.single('file'),postsController.create.bind(postsController));
 
 
 /**
@@ -163,10 +166,15 @@ router.post("/", upload.single('file'),postsController.create.bind(postsControll
  *         description: Server error
  */
 
-router.delete("/:id", postsController.deleteItem.bind(postsController));
+//router.delete("/:id", postsController.deleteItem.bind(postsController));
+router.delete("/:id", authMiddleware, postsController.deleteItem.bind(postsController));
 
-router.delete("/",postsController.deleteAllItems.bind(postsController));
+//router.delete("/",postsController.deleteAllItems.bind(postsController));
+router.delete("/", authMiddleware, postsController.deleteAllItems.bind(postsController));
 
-router.put("/:id",upload.single('file'), postsController.updateItem.bind(postsController));
+
+//router.put("/:id",upload.single('file'), postsController.updateItem.bind(postsController));
+router.put("/:id", upload.single('file') , authMiddleware, postsController.updateItem.bind(postsController));
+
 
 export default router;
