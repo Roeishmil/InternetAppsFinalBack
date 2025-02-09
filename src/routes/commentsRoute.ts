@@ -165,7 +165,7 @@ router.post("/" ,commentsController.create.bind(commentsController));
  *         description: Server error.
  */
 
-router.delete("/:id", authMiddleware,commentsController.deleteItem.bind(commentsController));
+router.delete("/:id",commentsController.deleteItem.bind(commentsController));
 
 
 /**
@@ -214,6 +214,6 @@ router.delete("/:id", authMiddleware,commentsController.deleteItem.bind(comments
  *         description: Server error.
  */
 
-router.put("/:id", authMiddleware,commentsController.updateItem.bind(commentsController));
+router.put("/:id",commentsController.updateItem.bind(commentsController));
 
 export default router;
