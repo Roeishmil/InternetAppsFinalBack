@@ -4,9 +4,10 @@ import mongoose from "mongoose";
 export interface IUser {
   username: string;
   email: string;
-  password: string;
+  password?: string;
   _id?: string;
   imgUrl: string,
+  googleId?: string;  // Added for Google OAuth
   refreshToken?: string[];
 }
 
@@ -24,11 +25,18 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function(this: any) {
+      return !this.googleId; // Only required if not using Google OAuth
+    },
   },
   imgUrl: {
     type: String,
     required: false,
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null/undefined while maintaining uniqueness
   },
   refreshToken: {
     type: [String],

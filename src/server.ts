@@ -13,7 +13,8 @@ import swaggerJsDoc from "swagger-jsdoc";
 import swaggerUI from "swagger-ui-express";
 import askGPT from './openai';
 import cors from "cors";
-
+import session from 'express-session';
+import passport from 'passport';
 
 const app: Express = express();
 
@@ -30,6 +31,23 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Methods", "*");
     next();
   });
+
+  app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        }
+    })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use("/posts", postsRoute);
 app.use("/comments", commentsRoute);
