@@ -34,7 +34,13 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
     required: false,
-  }
+  },
+  twoFactorSecret: {
+    type: String, default: null 
+  },
+  twoFactorEnabled: {
+    type: Boolean, default: false
+  },
 });
 
 const usersModel = mongoose.model("Users", userSchema);

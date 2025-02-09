@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
 
-
 type Payload = {
   _id: string;
 };
@@ -34,7 +33,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
 const register = async (req: Request, res: Response) => {
   try {
-    console.log('Reached registration', req.body);
     const password = req.body.password;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -151,7 +149,6 @@ const verifyRefreshToken = async (refreshToken: string | undefined): Promise<any
               return
           }
           //get the user id from token
-          
           const userId = payload._id;
           try {
               //get the user form the db
@@ -216,9 +213,16 @@ const logout = async (req: Request, res: Response) => {
     }
   };
 
+
+
+  
+
+
   export default {
     register,
     login,
     logout,
-    refresh
+    refresh,
   };
+
+

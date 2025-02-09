@@ -20,7 +20,7 @@ POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-  "username": "Jason",
+  "email": "jason@tomtom1.com",
   "password": "RoeiIsLove"
 }
 
@@ -69,3 +69,12 @@ Content-Type: application/json
 
 ###Delete all posts
 DELETE http://localhost:3000/posts
+
+
+###Google Authenticator (2FA) API
+POST http://localhost:3000/auth/enable-2fa
+Content-Type: application/json
+
+{
+  "userId": "Jason1"
+}
