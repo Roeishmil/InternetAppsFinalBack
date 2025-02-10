@@ -11,4 +11,3 @@ dist/
 storage/
 *.env
 .env
-test/

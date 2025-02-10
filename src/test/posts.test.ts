@@ -1,106 +1,178 @@
-import request from "supertest";
-import initApp from "../server";
-import mongoose from "mongoose";
-import postModel from "../models/postsModel";
-import { Express } from "express";
-import userModel, { IUser } from "../models/usersModel";
+import request from 'supertest';
+import express from 'express';
+import initApp from '../server';
+import UserModel from '../models/usersModel';
+import PostModel from '../models/postsModel';
+import { connectToTestDatabase, clearDatabase, closeDatabase } from './testSetup';
 
-// eslint-disable-next-line no-var
-var app: Express;
+describe('Posts Routes Integration Tests', () => {
+  let app: express.Application;
+  let accessToken: string;
+  let userId: string;
 
-type User = IUser & { token?: string };
-const testUser: User = {
-  username: "testuser",
-  email: "test@user.com",
-  password: "testpassword",
-}
-
-beforeAll(async () => {
-  console.log("beforeAll");
-  app = await initApp();
-  await postModel.deleteMany();
-  await userModel.deleteMany();
-  await request(app).post("/auth/register").send(testUser);
-  const res = await request(app).post("/auth/login").send(testUser);
-  testUser.token = res.body.refreshToken;
-  testUser._id = res.body._id;
-  expect(testUser.token).toBeDefined();
-});
-
-afterAll((done) => {
-  console.log("afterAll");
-  mongoose.connection.close();
-  done();
-});
-
-let postId = "";
-describe("Posts Tests", () => {
-  test("Posts test get all", async () => {
-    const response = await request(app).get("/posts");
-    expect(response.statusCode).toBe(200);
-    expect(response.body.length).toBe(0);
+  beforeAll(async () => {
+    await connectToTestDatabase();
+    app = (await initApp()) as express.Application;
   });
 
-  test("Test Create Post", async () => {
-    const response = await request(app).post("/posts")
-      .set({ Authorization: "JWT " + testUser.token })
+  afterAll(async () => {
+    await closeDatabase();
+  });
+
+  beforeEach(async () => {
+    await clearDatabase();
+
+    // Register a user and get access token
+    const registerResponse = await request(app)
+      .post('/auth/register')
       .send({
-        title: "Test Post",
-        content: "Test Content",
-        owner: "TestOwner",
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123'
       });
-    expect(response.statusCode).toBe(201);
-    expect(response.body.title).toBe("Test Post");
-    expect(response.body.content).toBe("Test Content");
-    postId = response.body._id;
+
+    accessToken = registerResponse.body.accessToken;
+    const user = await UserModel.findOne({ email: 'test@example.com' });
+    userId = user?._id.toString() || '';
   });
 
-  test("Test get post by owner", async () => {
-    const response = await request(app).get("/posts?owner=" + testUser._id);
-    expect(response.statusCode).toBe(200);
-    expect(response.body.length).toBe(1);
-    expect(response.body[0].title).toBe("Test Post");
-    expect(response.body[0].content).toBe("Test Content");
+  describe('POST /posts', () => {
+    it('should create a new post', async () => {
+      const response = await request(app)
+        .post('/posts')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('title', 'Test Post')
+        .field('content', 'This is a test post')
+        .field('owner', userId);
+
+      expect(response.status).toBe(201);
+
+      // Fetch the created post to verify details
+      const createdPost = await PostModel.findOne({ title: 'Test Post' });
+      expect(createdPost).toBeTruthy();
+      expect(createdPost?.title).toBe('Test Post');
+      expect(createdPost?.content).toBe('This is a test post');
+      expect(createdPost?.owner.toString()).toBe(userId);
+    });
+
+    it('should reject post creation without authentication', async () => {
+      const response = await request(app)
+        .post('/posts')
+        .field('title', 'Test Post')
+        .field('content', 'This is a test post')
+        .field('owner', userId);
+
+      expect(response.status).toBe(401);
+    });
   });
 
-  test("Test get post by id", async () => {
-    const response = await request(app).get("/posts/" + postId);
-    expect(response.statusCode).toBe(200);
-    expect(response.body.title).toBe("Test Post");
-    expect(response.body.content).toBe("Test Content");
+  describe('GET /posts', () => {
+    beforeEach(async () => {
+      // Create some test posts
+      await PostModel.create([
+        { title: 'Post 1', content: 'Content 1', owner: userId },
+        { title: 'Post 2', content: 'Content 2', owner: userId }
+      ]);
+    });
+
+    it('should get all posts', async () => {
+      const response = await request(app).get('/posts');
+
+      expect(response.status).toBe(200);
+      expect(response.body.length).toBe(2);
+      expect(response.body[0]).toHaveProperty('title');
+      expect(response.body[1]).toHaveProperty('content');
+    });
   });
 
-  test("Test Create Post 2", async () => {
-    const response = await request(app).post("/posts")
-      .set({ authorization: "JWT " + testUser.token })
-      .send({
-        title: "Test Post 2",
-        content: "Test Content 2",
-        owner: "TestOwner2",
+  describe('GET /posts/:id', () => {
+    let postId: string;
+
+    beforeEach(async () => {
+      const post = await PostModel.create({
+        title: 'Single Post',
+        content: 'This is a single post',
+        owner: userId
       });
-    expect(response.statusCode).toBe(201);
+      postId = post._id.toString();
+    });
+
+    it('should get a single post by ID', async () => {
+      const response = await request(app).get(`/posts/${postId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('title', 'Single Post');
+      expect(response.body).toHaveProperty('content', 'This is a single post');
+    });
   });
 
-  test("Posts test get all 2", async () => {
-    const response = await request(app).get("/posts");
-    expect(response.statusCode).toBe(200);
-    expect(response.body.length).toBe(2);
-  });
+  describe('PUT /posts/:id', () => {
+    let postId: string;
 
-  test("Test Delete Post", async () => {
-    const response = await request(app).delete("/posts/" + postId)
-      .set({ authorization: "JWT " + testUser.token });
-    expect(response.statusCode).toBe(200);
-    const response2 = await request(app).get("/posts/" + postId);
-    expect(response2.statusCode).toBe(404);
-  });
-
-  test("Test Create Post fail", async () => {
-    const response = await request(app).post("/posts")
-      .set({ authorization: "JWT " + testUser.token })
-      .send({
-        content: "Test Content 2",
+    beforeEach(async () => {
+      const post = await PostModel.create({
+        title: 'Original Post',
+        content: 'Original content',
+        owner: userId
       });
-    expect(response.statusCode).toBe(400);
+      postId = post._id.toString();
+    });
+
+    it('should update a post', async () => {
+      const response = await request(app)
+        .put(`/posts/${postId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('id', postId)
+        .field('title', 'Updated Post')
+        .field('content', 'Updated content');
+
+      expect(response.status).toBe(200);
+
+      // Fetch the updated post to verify details
+      const updatedPost = await PostModel.findById(postId);
+      expect(updatedPost?.title).toBe('Updated Post');
+      expect(updatedPost?.content).toBe('Updated content');
+    });
+
+    it('should reject post update without authentication', async () => {
+      const response = await request(app)
+        .put(`/posts/${postId}`)
+        .field('id', postId)
+        .field('title', 'Updated Post')
+        .field('content', 'Updated content');
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('DELETE /posts/:id', () => {
+    let postId: string;
+
+    beforeEach(async () => {
+      const post = await PostModel.create({
+        title: 'Post to Delete',
+        content: 'This post will be deleted',
+        owner: userId
+      });
+      postId = post._id.toString();
+    });
+
+    it('should delete a post', async () => {
+      const response = await request(app)
+        .delete(`/posts/${postId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+
+      // Verify post is deleted
+      const deletedPost = await PostModel.findById(postId);
+      expect(deletedPost).toBeNull();
+    });
+
+    it('should reject post deletion without authentication', async () => {
+      const response = await request(app).delete(`/posts/${postId}`);
+
+      expect(response.status).toBe(401);
+    });
   });
 });
