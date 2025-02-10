@@ -32,6 +32,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     next();    
   } catch (err) {
     res.status(401).send('Access Denied: Invalid token');
+
   }
 };
 
@@ -187,7 +188,36 @@ const verifyRefreshToken = async (refreshToken: string): Promise<any> => {
       } catch (err) {
         reject('Server error during token verification');
       }
-    });
+
+      jwt.verify(refreshToken, process.env.TOKEN_SECRET, async (err: any, payload: any) => {
+          if (err) {
+              reject("access denied");
+              return
+          }
+          //get the user id from token
+          const userId = payload._id;
+          try {
+              //get the user form the db
+              const user = await userModel.findOne({username:userId});
+              if (!user) {
+                  reject("access denied");
+                  return;
+              }
+              if (!user.refreshToken || !user.refreshToken.includes(refreshToken)) {
+                  user.refreshToken = [];
+                  await user.save();
+                  reject("access denied");
+                  return;
+              }
+              //remove the current token from the user's refreshToken list
+              const tokens = user.refreshToken!.filter((token) => token !== refreshToken);
+              user.refreshToken = tokens;
+              resolve(user);
+          } catch (err) {
+              reject("fail");
+              return;
+          }
+      });
   });
 };
 
@@ -249,3 +279,4 @@ export default {
   authMiddleware,
   generateToken
 };
+
