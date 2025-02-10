@@ -218,6 +218,7 @@ const verifyRefreshToken = async (refreshToken: string): Promise<any> => {
               return;
           }
       });
+    });
   });
 };
 
