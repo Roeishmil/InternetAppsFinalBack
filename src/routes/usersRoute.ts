@@ -84,6 +84,7 @@ router.get("/", usersController.getAllUsers);
 
 router.get("/:username", usersController.getUserByUsername);
 
+
 /**
  * @swagger
  * /users:
