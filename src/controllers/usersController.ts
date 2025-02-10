@@ -37,6 +37,21 @@ const getUserByUsername = async (req:any, res:any) => {
   }
 };
 
+const getUserByUserId = async (req:any, res:any) => {
+  const userId = req.params._id;
+
+  try {
+    const user = await usersModel.findOne({_id : userId });
+    if (user) {
+      res.send(user);
+    } else {
+      res.status(404).send("user not found");
+    }
+  } catch (error:any) {
+    res.status(400).send(error.message);
+  }
+};
+
 const createAUser = async (req:any, res:any) => {
   const userBody = req.body;
   console.log('User creation reached',req.body)
@@ -129,4 +144,5 @@ export default {
   getUserByUsername,
   deleteUserByUsername,
   updateUserImageByUsername,
+  getUserByUserId,
 };
