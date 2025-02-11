@@ -1,6 +1,8 @@
 // likesRouter.ts
 import express from 'express';
 import { LikesController } from '../controllers/likedObjectController';
+import { auth } from 'google-auth-library';
+import { authMiddleware } from '../controllers/authController';
 
 const router = express.Router();
 
@@ -61,7 +63,13 @@ const router = express.Router();
  *       400:
  *         description: Invalid input or like already exists
  */
-router.post('/', LikesController.addLike);
+router.post('/', async (req, res, next) => {
+  try {
+      await LikesController.addLike(req, res);
+  } catch (error) {
+      next(error);
+  }
+});
 
 /**
  * @swagger
@@ -93,7 +101,14 @@ router.post('/', LikesController.addLike);
  *       404:
  *         description: Like not found
  */
-router.delete('/', LikesController.removeLike);
+router.delete('/', async (req, res, next) => {
+    try {
+        await LikesController.removeLike(req, res);
+    } catch (error) {
+        next(error);
+    }
+  });
+
 
 /**
  * @swagger

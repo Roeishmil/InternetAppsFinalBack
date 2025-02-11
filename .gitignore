@@ -11,3 +11,8 @@ dist/
 storage/
 *.env
 .env
+client-cert.pem
+client-key.pem
+client.csr
+.env_prod
+.env_dev

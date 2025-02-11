@@ -1,6 +1,5 @@
 import usersModel from "../models/usersModel";
 import fileRouter from "../routes/fileRoute"
-import { Blob } from 'buffer'; // Import Blob from the 'buffer' module if necessary
 import { Request, Response } from "express";
 
 interface FileRequest extends Request {
@@ -110,7 +109,7 @@ const updateUserImageByUsername = async (req:FileRequest, res:Response) => {
         formData.append('file', fileBlob, req.file.originalname);
 
         // Make request to your file upload endpoint
-        const response = await fetch(`http://localhost:${port}/storage?imgId=${userId}`, {
+        const response = await fetch(process.env.BASE_URL +`:${port}/storage?imgId=${userId}`, {
             method: 'POST',
             body: formData
         });
@@ -123,7 +122,7 @@ const updateUserImageByUsername = async (req:FileRequest, res:Response) => {
         
         // Update post with file URL
         if (fileData.url) {
-        const finalUrl = `http://localhost:${port}/storage/${userId}`+'/'+fileData.url.split('/').pop();
+          const finalUrl = process.env.BASE_URL + `:${port}/storage/${userId}`+'/'+fileData.url.split('/').pop();
         console.log("photo file url" , finalUrl);
         user.imgUrl = finalUrl;
         console.log("User file url" , user.imgUrl);

@@ -4,10 +4,24 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import authController from '../controllers/authController';
 import UserModel from '../models/usersModel';
 import dotenv from 'dotenv';
+import { Console } from 'console';
+import axios from 'axios';
+import { Request, Response, NextFunction } from 'express';
+import { ParamsDictionary } from 'express-serve-static-core';
+import { ParsedQs } from 'qs';
+
+declare global {
+  namespace Express {
+    interface User {
+      userId: string;
+    }
+  }
+}
 
 dotenv.config();
+const REDIRECT_URI = process.env.REDIRECT_URI;
 
-const REDIRECT_URI = '<http://localhost:3000/auth/google/callback>';
+// const REDIRECT_URI = '<http://localhost:3000/auth/google/callback>';
 
 const router = express.Router();
 
@@ -22,7 +36,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: "http://localhost:3000/auth/google/callback",
+      callbackURL: process.env.CALLBACK_URL,
       passReqToCallback: true
     },
     async (req: any, accessToken: string, refreshToken: string, profile: any, done: any) => {
@@ -72,7 +86,7 @@ passport.serializeUser((user: any, done) => {
 passport.deserializeUser(async (id: string, done) => {
   try {
       const user = await UserModel.findById(id);
-      done(null, user);
+      done(null, user as Express.User | null);
   } catch (error) {
       done(error, null);
   }
@@ -98,7 +112,7 @@ router.get('/verify-config', (req, res) => {
           clientIDLength: process.env.GOOGLE_CLIENT_ID?.length,
           clientSecretExists: !!process.env.GOOGLE_CLIENT_SECRET,
           clientSecretLength: process.env.GOOGLE_CLIENT_SECRET?.length,
-          callbackURL: "http://localhost:3000/auth/google/callback"
+          callbackURL: process.env.CALLBACK_URL
       };
       
       res.json({
@@ -240,7 +254,14 @@ router.get('/google/callback',
 *       500:
 *         description: Server error
 */
-router.post('/register', authController.register);
+router.post('/register', async (req, res, next) => {
+  try {
+      await authController.register(req, res);
+  } catch (error) {
+      next(error);
+  }
+});
+
 
 /**
 * @swagger
@@ -278,7 +299,14 @@ router.post('/register', authController.register);
 *       500:
 *         description: Server error
 */
-router.post('/login', authController.login);
+router.post('/login', async (req, res, next) => {
+  try {
+      await authController.login(req, res);
+  } catch (error) {
+      next(error);
+  }
+});
+
 
 /**
 * @swagger
@@ -320,7 +348,14 @@ router.post('/login', authController.login);
 *       500:
 *         description: Server error
 */
-router.post('/refresh', authController.refresh);
+
+router.post('/refresh', async (req, res, next) => {
+  try {
+      await authController.refresh(req, res);
+  } catch (error) {
+      next(error);
+  }
+});
 
 /**
 * @swagger
@@ -362,8 +397,13 @@ router.post('/refresh', authController.refresh);
 *       500:
 *         description: Server error
 */
-router.post('/logout', authController.logout);
-
+router.post('/logout', async (req, res, next) => {
+  try {
+      await authController.logout(req, res);
+  } catch (error) {
+      next(error);
+  }
+});
 /**
  * @swagger
  * /auth/profile:
@@ -391,30 +431,38 @@ router.post('/logout', authController.logout);
  *       500:
  *         description: Server error
  */
-router.get('/profile', authController.authMiddleware, async (req, res) => {
+
+// Update the existing declaration in authRoute.ts
+
+
+router.get('/profile', authController.authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-      // Extract the user ID from the request (set by the authMiddleware)
-      const userId = req.user.userId;
+    const userId = req.user?.userId;
 
-      // Fetch the user from the database, excluding sensitive fields like password and refreshToken
-      const user = await UserModel.findById(userId).select('-password -refreshToken');
+    if (!userId) {
+      res.status(401).json({ message: 'User ID not found in request' });
+      return;
+    }
 
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
+    const user = await UserModel.findById(userId).select('-password -refreshToken');
 
-      // Return the user profile data
-      res.json({
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          // Add any other fields you want to return (e.g., profile picture, etc.)
-      });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    });
   } catch (error) {
-      console.error('Error fetching user profile:', error);
-      res.status(500).json({ message: 'Server error' });
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 // google auth accurding to the documentation but it doesnt work
@@ -423,7 +471,7 @@ router.get('/profile', authController.authMiddleware, async (req, res) => {
 
   // Initiates the Google Login flow
   router.get('/auth/google', (req, res) => {
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=profile email`;
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=profile email`;
     res.redirect(url);
   });
   
@@ -434,8 +482,8 @@ router.get('/profile', authController.authMiddleware, async (req, res) => {
     try {
       // Exchange authorization code for access token
       const { data } = await axios.post('<https://oauth2.googleapis.com/token>', {
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
         code,
         redirect_uri: REDIRECT_URI,
         grant_type: 'authorization_code',
@@ -452,7 +500,7 @@ router.get('/profile', authController.authMiddleware, async (req, res) => {
   
       res.redirect('/');
     } catch (error) {
-      console.error('Error:', error.response.data.error);
+      console.error('Error:', (error as any).response.data.error);
       res.redirect('/login');
     }
   });

@@ -22,7 +22,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(cors({
-  origin: 'http://localhost:5173', // Our React app's URL
+  origin: process.env.BASE_URL + ':5173', // Our React app's URL
 }));
 
 app.use((req, res, next) => {
@@ -55,7 +55,8 @@ app.use("/auth", authRoutes);
 app.use("/storage", fileRoute);
 app.use("/users", usersRoute);
 app.use("/likes", likesRoutes);
-app.use("/api/askGPT", askGPT);
+app.post("/api/askGPT", askGPT as any);
+
 
 app.use("/storage", express.static("storage"));
 app.use(express.static("front"));
@@ -69,7 +70,7 @@ const options = {
         version: "1.0.0",
         description: "REST server including authentication using JWT",
       },
-      servers: [{ url: "http://localhost:3000", },],
+      servers: [{ url: process.env.API_URL, },{ url: process.env.API_URLS, },],
     },
     apis: ["./src/routes/*.ts"],
   };

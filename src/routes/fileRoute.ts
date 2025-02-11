@@ -145,7 +145,7 @@ fileRouter.post('/', async (req: Request, res: Response) => {
  *       404:
  *         description: File not found
  */
-fileRouter.get('/:imgId/:filename', async (req: Request, res: Response) => {
+fileRouter.get('/:imgId/:filename', async (req: Request, res: Response): Promise<void> => {
     try {
         const filePath = path.join(
             "storage", 
@@ -157,7 +157,7 @@ fileRouter.get('/:imgId/:filename', async (req: Request, res: Response) => {
         try {
             await fs.access(filePath);
         } catch {
-            return res.status(404).json({ 
+            res.status(404).json({ 
                 error: "File not found" 
             });
         }

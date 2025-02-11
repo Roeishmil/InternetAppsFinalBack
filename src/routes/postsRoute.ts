@@ -169,6 +169,7 @@ router.post("/", upload.single('file'), authMiddleware, postsController.create.b
 //router.delete("/:id", postsController.deleteItem.bind(postsController));
 router.delete("/:id", authMiddleware, postsController.deleteItem.bind(postsController));
 
+
 //router.delete("/",postsController.deleteAllItems.bind(postsController));
 router.delete("/", authMiddleware, postsController.deleteAllItems.bind(postsController));
 
